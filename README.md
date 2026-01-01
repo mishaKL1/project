@@ -14,5 +14,45 @@ Analýza sa zameria na identifikáciu korelácie medzi náborovou aktivitou (po�
 7.	COMPANY_TICKER_REFERENCE_SAMPLE - Toto je tabuľka prepojení, ktorá porovnáva interné ID spoločností s ich oficiálnymi burzovými indexmi.
 8.	COMPANY_SCRAPE_LOG_SAMPLE - Technická tabuľka sledujúca proces zberu dát.
 
+Star Schema:
+V našej hviezdicovej modele máme dve tabuľky faktov a päťdimenzionálne tabuľky.
+Použitie dvoch tabuliek faktov je nevyhnutné, pretože nemôžeme kombinovať údaje o všetkých voľných pracovných miestach za daný deň a podrobnosti o každom voľnom pracovnom mieste v jednej tabuľke faktov, pretože by to viedlo k logickým chybám vo výpočtoch.
+Preto sa tabuľka FACT_JOB_ACTIVITY používa na výpočet „denných súčtov“ a tabuľka FACT_JOB_POSTINGS sa používa na výpočet podrobností o každom voľnom pracovnom mieste.
+Sú prepojené pomocou zdieľaných dimenzionálnych tabuliek DIM_OCCUPATION a DIM_COMPANY.
+
+FACT_JOB_ACTIVITY:
+Primárny kľúč: fact_job_activity_id
+Cudzie kľúče:  company_id , ticker_id , occupation_id
+hlavné metriky:  created_job_count - počet novovytvorených voľných pracovných miest v daný deň ,  deleted_job_count - počet zrušené/obsadenych voľných pracovných miest v daný deň , unique_active_job_count - celkový počet voľných pracovných miest , active_duration - čas, kedy je voľné miesto otvorené.
+
+FACT_JOB_POSTINGS:
+Primárny kľúč: fact_job_post_id.
+Cudzie kľúče: job_hash , company_id, occupation_id,location_id.
+hlavné metriky: unmapped_location - technický príznak presnosti priradenia lokality.
+
+DIM_COMPANY:
+obsah: nazov firmy,LEI, naics, datum start a end.
+vztah z faktami: 1:N do dvoch faktovych tabuliek.
+typ SCD: 2 , Uchováva históriu zmien.
+
+DIM_OCCUPATION:
+obsah: nazvy profesii.
+vztah z faktami: 1:N do dvoch faktovych tabuliek.
+typ SCD: 1 , nové informácie prepisujú staré.
+
+DIM_LOCATION:
+obsah: geograficke udaje.
+vztah z faktami: 1:n k FACT_JOB_POSTINGS.
+typ SCD: 0 , fixovana data.
+
+DIM_TICKER:
+obsah:ticker, názov burzy a krajina obchodovania.
+vztah z faktami: 1:n k FACT_JOB_ACTIVITY.
+typ SCD: 2 Uchováva históriu zmien.
+
+DIM_JOB:
+obsah: informacie o prace - nazov , popis, url.
+vztah z faktami: 1:n k FACT_JOB_POSTINGS.
+typ SCD: 1 , nové informácie prepisujú staré.
 
 Shubin Mykhailo
