@@ -37,7 +37,7 @@ typ SCD: 2 , Uchováva históriu zmien.
 
 DIM_OCCUPATION:
 obsah: nazvy profesii.
-vztah z faktami: 1:N do dvoch faktovych tabuliek.
+vztah z faktami: 1:N k FACT_JOB_POSTINGS
 typ SCD: 1 , nové informácie prepisujú staré.
 
 DIM_LOCATION:
