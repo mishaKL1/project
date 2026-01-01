@@ -28,7 +28,7 @@ hlavné metriky:  created_job_count - počet novovytvorených voľných pracovn�
 FACT_JOB_POSTINGS:
 Primárny kľúč: fact_job_post_id.
 Cudzie kľúče: job_hash , company_id, occupation_id,location_id.
-hlavné metriky: unmapped_location - technický príznak presnosti priradenia lokality.
+hlavné metriky: unmapped_location - technický príznak presnosti priradenia lokality, created a updated, checked - parametre posledných interakcií s voľnými pracovnými miestami.
 
 DIM_COMPANY:
 obsah: nazov firmy,LEI, naics, datum start a end.
