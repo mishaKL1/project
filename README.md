@@ -15,3 +15,4 @@ Analýza sa zameria na identifikáciu korelácie medzi náborovou aktivitou (po�
 8.	COMPANY_SCRAPE_LOG_SAMPLE - Technická tabuľka sledujúca proces zberu dát.
 
 
+Shubin Mykhailo
