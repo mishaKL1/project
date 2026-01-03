@@ -57,4 +57,38 @@ obsah: informacie o prace - nazov , popis, url.
 vztah z faktami: 1:n k FACT_JOB_POSTINGS.
 typ SCD: 1 , nové informácie prepisujú staré.
 
+
+vizualizacii:
+1)Top 10 krajín podľa počtu voľných pracovných miest:
+SELECT l.country, COUNT(*) AS total_jobs
+FROM fact_job_posting f JOIN dim_location l ON f.locate_id = l.locate_id 
+GROUP BY l.country 
+ORDER BY total_jobs DESC LIMIT 10;
+<img width="1584" height="426" alt="1" src="https://github.com/user-attachments/assets/f88b10b4-ae68-4834-a059-8c9fe77f80e0" />
+
+2)5 najžiadanejších profesií (ONET)
+SELECT o.onet_occupation_code, COUNT(*) AS job_count FROM fact_job_posting f JOIN dim_occupation o ON f.occupation_id = o.occupation_id
+GROUP BY o.onet_occupation_code
+ORDER BY job_count DESC LIMIT 5;
+<img width="1609" height="687" alt="2" src="https://github.com/user-attachments/assets/2aede71b-04ad-4764-ab5f-000c24a41126" />
+
+3)Dynamika nových voľných pracovných miest
+select trunc(created,'MONTH') as posting_date , count(*) as pocet_job  from fact_job_posting group by created;
+<img width="1322" height="690" alt="3" src="https://github.com/user-attachments/assets/da4c10b3-0508-4285-b70e-ba250e2948c7" />
+
+4)Top 3 spoločnosti podľa počtu pracovných ponúk
+select  c.company_name, count(distinct f.job_hash) as num_jobs
+from fact_job_posting f
+inner join dim_company c on f.company_id = c.company_id
+group by c.company_name order by num_jobs desc limit 3; 
+<img width="1316" height="270" alt="4" src="https://github.com/user-attachments/assets/8cfaf6f2-64da-478a-aa54-7b2c77e16674" />
+
+5)Sektorová štruktúra dopytu
+SELECT c.naics_code, COUNT(f.fact_job_postingid) AS job_count
+FROM fact_job_posting f
+JOIN dim_company c ON f.company_id = c.company_id
+GROUP BY c.naics_code ORDER BY job_count DESC;
+<img width="1608" height="445" alt="5" src="https://github.com/user-attachments/assets/ce380167-a82b-4d00-937f-b2bcbac2c5fa" />
+
+
 Shubin Mykhailo
