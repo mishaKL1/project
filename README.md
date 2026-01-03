@@ -26,7 +26,8 @@ Použitie dvoch tabuliek faktov je nevyhnutné, pretože nemôžeme kombinovať 
 Preto sa tabuľka FACT_JOB_ACTIVITY používa na výpočet „denných súčtov“ a tabuľka FACT_JOB_POSTINGS sa používa na výpočet podrobností o každom voľnom pracovnom mieste.
 Sú prepojené pomocou zdieľaných dimenzionálnych tabulki DIM_COMPANY.
 
-<img width="1487" height="655" alt="star_schema" src="https://github.com/user-attachments/assets/6a7c9d2a-a897-4945-8796-f27bba8f243e" />
+<img width="1467" height="898" alt="galaxy" src="https://github.com/user-attachments/assets/02282df3-58e8-471b-86f0-a8629d5efa99" />
+
 
 Napriek tomu, že použitie dvoch tabuliek faktov je z pohľadu modelovania dát korektné a zodpovedá schéme súhvezdia faktov, v rámci tohto projektu sme sa rozhodli model zjednodušiť.
 Cieľom projektu je prezentovať klasickú hviezdicovú schému, ktorá pozostáva z jednej tabuľky faktov a viacerých dimenzionálnych tabuliek. Z tohto dôvodu sme sa zamerali na jeden hlavný biznis proces – detailné informácie o voľných pracovných miestach.
@@ -35,31 +36,31 @@ Výsledná dátová štruktúra tak obsahuje jednu tabuľku faktov a štyri dime
 
 <img width="919" height="740" alt="star_schema" src="https://github.com/user-attachments/assets/793d372b-c5ba-4259-a003-5c9d2d1ece11" />
 
-FACT_JOB_POSTINGS:
-Primárny kľúč: fact_job_post_id.
-Cudzie kľúče: job_hash , company_id, occupation_id,location_id.
-hlavné metriky: unmapped_location - technický príznak presnosti priradenia lokality, created a updated, checked - parametre posledných interakcií s voľnými pracovnými miestami.
+FACT_JOB_POSTINGS:  
+Primárny kľúč: fact_job_post_id.  
+Cudzie kľúče: job_hash , company_id, occupation_id,location_id.  
+hlavné metriky: unmapped_location - technický príznak presnosti priradenia lokality, created a updated, checked - parametre posledných interakcií s voľnými pracovnými miestami.  
 
-DIM_COMPANY:
-obsah: nazov firmy,LEI, naics, datum start a end.
-vztah z faktami: 1:N k FACT_JOB_POSTINGS
-typ SCD: 2 , Uchováva históriu zmien.
-
-DIM_OCCUPATION:
-obsah: nazvy profesii.
-vztah z faktami: 1:N k FACT_JOB_POSTINGS
-typ SCD: 1 , nové informácie prepisujú staré.
-
-DIM_LOCATION:
-obsah: geograficke udaje.
-vztah z faktami: 1:n k FACT_JOB_POSTINGS.
-typ SCD: 0 , fixovana data.
-
-DIM_JOB:
-obsah: informacie o prace - nazov , popis, url.
-vztah z faktami: 1:n k FACT_JOB_POSTINGS.
-typ SCD: 1 , nové informácie prepisujú staré.
-
+DIM_COMPANY:  
+obsah: nazov firmy,LEI, naics, datum start a end.  
+vztah z faktami: 1:N k FACT_JOB_POSTINGS  
+typ SCD: 2 , Uchováva históriu zmien.  
+  
+DIM_OCCUPATION:  
+obsah: nazvy profesii.  
+vztah z faktami: 1:N k FACT_JOB_POSTINGS  
+typ SCD: 1 , nové informácie prepisujú staré.  
+  
+DIM_LOCATION:  
+obsah: geograficke udaje.  
+vztah z faktami: 1:n k FACT_JOB_POSTINGS.  
+typ SCD: 0 , fixovana data.  
+  
+DIM_JOB:  
+obsah: informacie o prace - nazov , popis, url.  
+vztah z faktami: 1:n k FACT_JOB_POSTINGS.  
+typ SCD: 1 , nové informácie prepisujú staré.  
+  
 <h2>3 ELT proces v Snowflake</h2>
 <h2>3.1 Extract</h2>
 V tejto fáze sa údaje získavajú z pôvodných zdrojov bez akejkoľvek transformácie.
