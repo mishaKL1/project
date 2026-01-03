@@ -1,4 +1,5 @@
 <h2>ELT proces datasetu RAW_SAMPLE_DATA</h2>
+<h2>1 Úvod a popis zdrojových dát</h2>
 Témou tohto projektu je analýza trhu práce a aktivity spoločností na základe historických údajov o voľných pracovných miestach.
 Pôvodný súbor údajov obsahuje primárne štruktúrované údaje. Tieto údaje zahŕňajú časové údaje (dátumy a aktivita uverejnenia pracovných ponúk), číselné údaje (počet voľných pracovných miest) a textové údaje vo forme popisov pracovných pozícií.
 Účelom analýzy je analyzovať vývoj pracovných ponúk v čase a zhodnotiť ich využitie ako indikátora budúcej ekonomickej a firemnej výkonnosti.
@@ -18,6 +19,7 @@ Analýza sa zameria na identifikáciu korelácie medzi náborovou aktivitou (po�
 7.	COMPANY_TICKER_REFERENCE_SAMPLE - Toto je tabuľka prepojení, ktorá porovnáva interné ID spoločností s ich oficiálnymi burzovými indexmi.
 8.	COMPANY_SCRAPE_LOG_SAMPLE - Technická tabuľka sledujúca proces zberu dát.
 
+<h2>2 hviezdicova model</h2>
 Star Schema:
 V našej hviezdicovej modele máme dve tabuľky faktov a päťdimenzionálne tabuľky.
 Použitie dvoch tabuliek faktov je nevyhnutné, pretože nemôžeme kombinovať údaje o všetkých voľných pracovných miestach za daný deň a podrobnosti o každom voľnom pracovnom mieste v jednej tabuľke faktov, pretože by to viedlo k logickým chybám vo výpočtoch.
@@ -58,37 +60,87 @@ obsah: informacie o prace - nazov , popis, url.
 vztah z faktami: 1:n k FACT_JOB_POSTINGS.
 typ SCD: 1 , nové informácie prepisujú staré.
 
+<h2>3 ELT proces v Snowflake</h2>
+<h2>3.1 Extract</h2>
+V tejto fáze sa údaje získavajú z pôvodných zdrojov bez akejkoľvek transformácie.
 
-vizualizacii:
-1)Top 10 krajín podľa počtu voľných pracovných miest:
+```sql
+create or replace table raw_jobs as seLECT * FROM RAW_SAMPLE_DATA.LINKUP.JOB_RECORDS_SAMPLE;
+create or replace table raw_jobs_description as select * from RAW_SAMPLE_DATA.LINKUP.JOB_DESCRIPTIONS_SAMPLE;
+create or replace table  raw_occupations as select * from RAW_SAMPLE_DATA.LINKUP.ONET_TAXONOMY_2019_SAMPLE;
+create or replace table  raw_company as select * from RAW_SAMPLE_DATA.LINKUP.PIT_COMPANY_REFERENCE_SAMPLE;
+```
+<h2>3.2 , 3.3 Load a Transform</h2>
+V tomto kroku sa údaje extrahované zo zdrojových kódov (tabuľky raw_*) načítajú do cieľovej schémy a súčasne sa transformujú na analytické účely.
+Tabuľky dimenzií (dim_company, dim_occupation, dim_job, dim_location) sú generované s jedinečnými kľúčmi a údajmi zbavenými duplikátov.
+window funcion (ROW_NUMBER() OVER(...)) a filtre (DISTINCT, QUALIFY) sa používajú na odstránenie duplikátov a správne generovanie jedinečných záznamov vo faktoch.
+
+```sql
+create or replace table dim_occupation as(
+select  row_number() over(order by ONET_OCCUPATION_CODE) as occupation_id, --vytvorenie jedinečného ID pre každý záznam
+ONET_OCCUPATION_CODE
+from (select distinct ONET_OCCUPATION_CODE from raw_occupations)
+);
+create or replace table dim_company as(
+select company_id,company_name, company_url as url, LEI,naics_code,open_perm_id,start_date,end_date from raw_company
+);
+create or replace table dim_job as (
+select j.job_hash,j.title,j.url,d.job_description 
+from raw_jobs j inner join  raw_jobs_description d on j.job_hash = d.job_hash
+);
+create or replace table dim_location as (
+select row_number() over(order by city,state,country) as locate_id, --vytvorenie jedinečného ID pre každý záznam
+city, state,country ,zip from (select distinct city, state, country, zip from raw_jobs)
+);
+create or replace table fact_job_posting as (
+select row_number() over(order by j.created) as fact_job_postingid, --vytvorenie jedinečného ID pre každý záznam
+j.job_hash,c.company_id,o.occupation_id,l.locate_id,j.created,j.LAST_CHECKED,j.LAST_UPDATED,j.UNMAPPED_LOCATION
+from raw_jobs j inner join dim_company c on j.company_id = c.company_id inner join (select distinct job_hash, onet_occupation_code from raw_occupations) o1 on j.job_hash = o1.job_hash inner join  dim_occupation o on o1.onet_occupation_code = o.onet_occupation_code left join dim_location l on j.city = l.city and j.state = l.state and j.country = l.country
+qualify row_number() over(partition by j.job_hash order by j.created desc) = 1 --odstránenie duplikátov
+);
+```
+
+<h2>4 Vizualizácia dát</h2>:
+
+1)Top 10 krajín podľa počtu voľných pracovných miest:  
+```sql
 SELECT l.country, COUNT(*) AS total_jobs
 FROM fact_job_posting f JOIN dim_location l ON f.locate_id = l.locate_id 
 GROUP BY l.country 
 ORDER BY total_jobs DESC LIMIT 10;
+```
 <img width="1584" height="426" alt="1" src="https://github.com/user-attachments/assets/f88b10b4-ae68-4834-a059-8c9fe77f80e0" />
 
-2)5 najžiadanejších profesií (ONET)
+2)5 najžiadanejších profesií (ONET):  
+```sql
 SELECT o.onet_occupation_code, COUNT(*) AS job_count FROM fact_job_posting f JOIN dim_occupation o ON f.occupation_id = o.occupation_id
 GROUP BY o.onet_occupation_code
 ORDER BY job_count DESC LIMIT 5;
+```
 <img width="1609" height="687" alt="2" src="https://github.com/user-attachments/assets/2aede71b-04ad-4764-ab5f-000c24a41126" />
 
-3)Dynamika nových voľných pracovných miest
+3)Dynamika nových voľných pracovných miest:  
+```sql
 select trunc(created,'MONTH') as posting_date , count(*) as pocet_job  from fact_job_posting group by created;
+```
 <img width="1322" height="690" alt="3" src="https://github.com/user-attachments/assets/da4c10b3-0508-4285-b70e-ba250e2948c7" />
 
-4)Top 3 spoločnosti podľa počtu pracovných ponúk
+4)Top 3 spoločnosti podľa počtu pracovných ponúk:  
+```sql
 select  c.company_name, count(distinct f.job_hash) as num_jobs
 from fact_job_posting f
 inner join dim_company c on f.company_id = c.company_id
-group by c.company_name order by num_jobs desc limit 3; 
+group by c.company_name order by num_jobs desc limit 3;
+```
 <img width="1316" height="270" alt="4" src="https://github.com/user-attachments/assets/8cfaf6f2-64da-478a-aa54-7b2c77e16674" />
 
-5)Sektorová štruktúra dopytu
+5)Sektorová štruktúra dopytu:  
+```sql
 SELECT c.naics_code, COUNT(f.fact_job_postingid) AS job_count
 FROM fact_job_posting f
 JOIN dim_company c ON f.company_id = c.company_id
 GROUP BY c.naics_code ORDER BY job_count DESC;
+```
 <img width="1608" height="445" alt="5" src="https://github.com/user-attachments/assets/ce380167-a82b-4d00-937f-b2bcbac2c5fa" />
 
 
