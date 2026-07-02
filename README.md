@@ -1,5 +1,12 @@
 <h2>ELT proces datasetu RAW_SAMPLE_DATA</h2>
 <h2>1 Úvod a popis zdrojových dát</h2>
+
+## English Summary
+A school project implementing an ELT pipeline in Snowflake for job market data. 
+Built a star schema (fact + dimension tables), implemented SCD types 1/2, 
+deduplication via window functions and QUALIFY, and analyzed hiring trends 
+by country, industry, and occupation.
+
 Témou tohto projektu je analýza trhu práce a aktivity spoločností na základe historických údajov o voľných pracovných miestach.
 Pôvodný súbor údajov obsahuje primárne štruktúrované údaje. Tieto údaje zahŕňajú časové údaje (dátumy a aktivita uverejnenia pracovných ponúk), číselné údaje (počet voľných pracovných miest) a textové údaje vo forme popisov pracovných pozícií.
 Účelom analýzy je analyzovať vývoj pracovných ponúk v čase a zhodnotiť ich využitie ako indikátora budúcej ekonomickej a firemnej výkonnosti.
